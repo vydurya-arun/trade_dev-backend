@@ -107,20 +107,22 @@ export const adminLogin = async (req, res) => {
     if (!email || !password) {
       return res
         .status(400)
-        .json({ success: false, message: "Missing email or password" });
+        .json({ success: false, message: "Email and password are required" });
     }
 
     // Find user
     const user = await userModel.findOne({ email });
     if (!user) {
       return res
-        .status(401)
-        .json({ success: false, message: "User does not exist" });
+        .status(404)
+        .json({ success: false, message: "User not found" });
     }
-    const userRole = user.role;
 
-    if(userRole !== "admin"){
-       return res.status(401).json({success:false,message:"only login admin"})
+    // Check role
+    if (user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Access denied: Admins only" });
     }
 
     // Compare password
@@ -128,17 +130,28 @@ export const adminLogin = async (req, res) => {
     if (!isMatch) {
       return res
         .status(401)
-        .json({ success: false, message: "Invalid password" });
+        .json({ success: false, message: "Incorrect password" });
     }
 
     // Create session + tokens + cookies
     await createSessionAndSetCookies(req, res, user, { singleDevice: true });
 
-    const safeUser = { id: user._id, username: user.username, email: user.email, role: user.role }
+    const safeUser = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    };
 
-    return res.json({ success: true, user: safeUser, message: "Admin login successful" });
+    return res.json({
+      success: true,
+      user: safeUser,
+      message: "Admin login successful",
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error: " + err.message });
   }
 };
 
