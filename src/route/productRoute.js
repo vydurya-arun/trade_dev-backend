@@ -35,7 +35,7 @@ productRouter.delete("/category",authMiddleware, deleteAllCategories);
 
 // product routes
 productRouter.post("/",authMiddleware,allowEditorOrAdmin, upload.single("file"), createProduct);
-productRouter.get("/", getAllProducts);
+productRouter.get("/",authMiddleware, getAllProducts);
 productRouter.get("/all_varient/:id", getProductByIdwithAllvarients);
 productRouter.get("/:id", getProductById);
 productRouter.put("/:id",authMiddleware, upload.single("file"), updateProduct);
