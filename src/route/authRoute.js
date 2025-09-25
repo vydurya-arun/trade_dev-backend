@@ -11,7 +11,7 @@ authRouter.post('/login',login);
 authRouter.post('/logout',logout);
 authRouter.post("/refresh", refresh);
 authRouter.get("/profile", authMiddleware, (req, res) => {
-  res.json({ success: true, user: req.user });
+  res.status(200).json({ success: true, user: req.user });
 });
 
 export default authRouter;
