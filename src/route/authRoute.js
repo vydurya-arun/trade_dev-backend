@@ -1,6 +1,6 @@
 import expess from 'express';
 import { authMiddleware } from "../middileware/authMiddleware.js";
-import { login, logout, register,refresh, adminRegister, adminLogin, getAllUsers, createUser } from '../controller/authController.js';
+import { login, logout, register,refresh, adminRegister, adminLogin, getAllUsers, createUser, deleteUserById } from '../controller/authController.js';
 
 const authRouter = expess.Router();
 
@@ -12,6 +12,7 @@ authRouter.post('/admin-login',adminLogin);
 authRouter.post('/login',login);
 authRouter.post('/logout',logout);
 authRouter.post("/refresh", refresh);
+authRouter.delete("/delete/:id",authMiddleware, deleteUserById);
 authRouter.get("/profile", authMiddleware, (req, res) => {
   res.status(200).json({ success: true, user: req.user });
 });
