@@ -9,7 +9,7 @@ const reviewRouter = express.Router();
 
 reviewRouter.post("/", authMiddleware,uploadReview, postReview);       
 reviewRouter.get("/:productId", getReviewsByProduct);  // Get all reviews for product
-reviewRouter.get("/", getAllReviews);  // Get all reviews 
+reviewRouter.get("/",authMiddleware, getAllReviews);  // Get all reviews 
 reviewRouter.delete("/",authMiddleware, deleteAllReviews); 
 reviewRouter.put("/:id",authMiddleware, updateReviewByUser); 
 reviewRouter.delete("/:id",authMiddleware, deleteReviewById); 

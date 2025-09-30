@@ -403,6 +403,22 @@ export const getProductVarientById = async (req, res) => {
   }
 };
 
+export const getAllProductVarient = async (req, res) => {
+  try {
+
+    const variant = await productVarientModel.find().populate("productId", "product_name");
+
+    if (!variant) {
+      return res.status(404).json({ success: false, message: "Product variant not found" });
+    }
+
+
+    return res.status(200).json({ success: true, data: variant });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ✅ Update Product Variant
 export const updateProductVarient = async (req, res) => {
   try {
