@@ -100,6 +100,54 @@ export const adminRegister = async (req, res) => {
   }
 };
 
+
+export const createUser = async (req, res) => {
+  try {
+    const { error } = registerValudate.validate(req.body, {
+      abortEarly: false,
+    });
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        errors: error.details.map((err) => err.message),
+      });
+    }
+    const { username, email, password,role } = req.body;
+
+    if (!username || !email || !password||!role) {
+      return res.status(401).json({
+        success: false,
+        message: "Missing username,email or password",
+      });
+    }
+
+    const existUser = await userModel.findOne({ email });
+
+    if (existUser) {
+      return res
+        .status(401)
+        .json({ success: false, message: "user already exist" });
+    }
+
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    const user = new userModel({
+      username,
+      email,
+      role:role,
+      password: hashPassword,
+    });
+    await user.save();
+
+    return res
+      .status(201)
+      .json({ success: true, message: "sucessfully Register" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -283,3 +331,18 @@ export const refresh = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const getAllUsers = async(req,res) =>{
+  try {
+    const users = await userModel.find().select("-password -verifyotp -verifyotpExpireAt -isAccountVerified -resetOtp -resetOtpExpireAt -__v");
+    if(!users){
+      return res.status(404).json({success:false, message:"users Not found"});
+
+    }
+
+    return res.status(200).json({success:true, data: users})
+    
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
