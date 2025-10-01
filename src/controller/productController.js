@@ -6,7 +6,7 @@ import { uploadToCloudinary,deleteFromCloudinary } from "../utils/cloudinary.js"
 
 export const createCategory = async (req, res) => {
   try {
-    const { category_name, description } = req.body;
+    const { category_name, description,status } = req.body;
 
     if (!category_name || !description || !req.file) {
       return res.status(400).json({
@@ -23,6 +23,7 @@ export const createCategory = async (req, res) => {
       description,
       category_imageUrl: cloudResult.url,
       imagePublicId: cloudResult.public_id,
+      is_active:status|| true,
     });
 
     await category.save();
@@ -101,7 +102,7 @@ export const deleteCategoryById = async (req, res) => {
     // Delete image from Cloudinary
     if (category.imagePublicId) await deleteFromCloudinary(category.imagePublicId);
 
-    await category.remove();
+    await category.deleteOne();
     return res.status(200).json({ success: true, message: "Category deleted" });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
