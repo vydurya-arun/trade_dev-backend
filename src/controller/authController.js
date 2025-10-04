@@ -3,8 +3,9 @@ import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 import { registerValudate } from "../validators/authValudation.js";
 import sessionModel from "../models/sessionModel.js";
-import { v4 as uuidv4 } from "uuid";
 import { createSessionAndSetCookies } from "../utils/createSessionAndSetCookies.js";
+import validator from "deep-email-validator";
+
 
 export const register = async (req, res) => {
   try {
@@ -103,9 +104,7 @@ export const adminRegister = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const { error } = registerValudate.validate(req.body, {
-      abortEarly: false,
-    });
+    const { error } = registerValudate.validate(req.body, { abortEarly: false });
 
     if (error) {
       return res.status(400).json({
@@ -113,38 +112,57 @@ export const createUser = async (req, res) => {
         errors: error.details.map((err) => err.message),
       });
     }
-    const { username, email, password,role } = req.body;
 
-    if (!username || !email || !password||!role) {
-      return res.status(401).json({
+    const { username, email, password, role } = req.body;
+
+    if (!username || !email || !password || !role) {
+      return res.status(400).json({
         success: false,
-        message: "Missing username,email or password",
+        message: "Missing username, email, password or role",
       });
     }
 
-    const existUser = await userModel.findOne({ email });
+    // ✅ Validate email using deep-email-validator
+    const { valid, reason, validators } = await validator.validate(email);
 
-    if (existUser) {
-      return res
-        .status(401)
-        .json({ success: false, message: "user already exist" });
+    if (!valid) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid email: ${reason}`,
+        details: validators[reason], // extra debug info
+      });
     }
 
+    // ✅ Check if user already exists
+    const existUser = await userModel.findOne({ email });
+    if (existUser) {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    // ✅ Hash password
     const hashPassword = await bcrypt.hash(password, 10);
 
     const user = new userModel({
       username,
       email,
-      role:role,
+      role,
       password: hashPassword,
     });
     await user.save();
 
-    return res
-      .status(201)
-      .json({ success: true, message: "sucessfully Register" });
+    return res.status(201).json({
+      success: true,
+      message: "Successfully registered",
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Create user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
