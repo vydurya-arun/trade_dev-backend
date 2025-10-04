@@ -1,6 +1,6 @@
 
 import OrderModel from "../models/orderModel.js";
-import { sendOrderToWhatsApp } from "../utils/whatsapp.js";
+
 
 export const createOrder = async (req, res) => {
   try {
@@ -44,7 +44,6 @@ export const createOrder = async (req, res) => {
       .populate("items.variant")
       .lean();
 
-    await sendOrderToWhatsApp(tosendData);
 
     res.status(201).json({ success: true, order: tosendData });
   } catch (error) {
