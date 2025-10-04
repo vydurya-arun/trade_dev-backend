@@ -8,6 +8,7 @@ const chargeRouter = express.Router();
 
 chargeRouter.post("/",authMiddleware, createCharges);
 chargeRouter.get("/",authMiddleware, getCharges);
+chargeRouter.get("/public", getCharges);
 chargeRouter.put("/",authMiddleware, updateCharges);
 chargeRouter.delete("/",authMiddleware, deleteCharge);
 
