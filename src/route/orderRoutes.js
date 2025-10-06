@@ -5,8 +5,8 @@ import { authMiddleware } from '../middileware/authMiddleware.js';
 
 const orderRoute = express.Router();
 
-orderRoute.post('/',authMiddleware, createOrder);
-orderRoute.get('/',getAllOrders);
+orderRoute.post('/', createOrder);
+orderRoute.get('/',authMiddleware,getAllOrders);
 orderRoute.delete('/:id',deleteOrderById);
 orderRoute.delete('/',deleteAllOrders);
 

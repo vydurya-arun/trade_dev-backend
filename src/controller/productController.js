@@ -6,7 +6,7 @@ import { uploadToCloudinary,deleteFromCloudinary } from "../utils/cloudinary.js"
 
 export const createCategory = async (req, res) => {
   try {
-    const { category_name, description } = req.body;
+    const { category_name, description,status } = req.body;
 
     if (!category_name || !description || !req.file) {
       return res.status(400).json({
@@ -23,6 +23,7 @@ export const createCategory = async (req, res) => {
       description,
       category_imageUrl: cloudResult.url,
       imagePublicId: cloudResult.public_id,
+      is_active:status|| true,
     });
 
     await category.save();
@@ -63,29 +64,35 @@ export const getAllCategories = async (req, res) => {
 
 export const updateCategory = async (req, res) => {
   try {
-    const { category_name, description } = req.body;
+    let updates = req.body;
 
     const category = await CategoryModel.findById(req.params.id);
-    if (!category)
+    if (!category) {
       return res.status(404).json({ success: false, message: "Category not found" });
+    }
 
-    // Update fields if provided
-    if (category_name) category.category_name = category_name;
-    if (description) category.description = description;
-
-    // Update image if new file uploaded
+    // ✅ Handle new image upload
     if (req.file) {
-      // Delete old image from Cloudinary
-      if (category.imagePublicId) await deleteFromCloudinary(category.imagePublicId);
+      // Delete old image from Cloudinary if exists
+      if (category.imagePublicId) {
+        await deleteFromCloudinary(category.imagePublicId);
+      }
 
       const cloudResult = await uploadToCloudinary(req.file.buffer, "category");
-      category.category_imageUrl = cloudResult.url;
-      category.imagePublicId = cloudResult.public_id;
+      updates.category_imageUrl = cloudResult.url;
+      updates.imagePublicId = cloudResult.public_id;
     }
+
+    // ✅ Merge updates into category
+    Object.assign(category, updates);
 
     await category.save();
 
-    return res.status(200).json({ success: true, message: "Category updated", data: category });
+    return res.status(200).json({
+      success: true,
+      message: "Category updated",
+      data: category,
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
@@ -101,7 +108,7 @@ export const deleteCategoryById = async (req, res) => {
     // Delete image from Cloudinary
     if (category.imagePublicId) await deleteFromCloudinary(category.imagePublicId);
 
-    await category.remove();
+    await category.deleteOne();
     return res.status(200).json({ success: true, message: "Category deleted" });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -403,6 +410,23 @@ export const getProductVarientById = async (req, res) => {
   }
 };
 
+export const getAllProductVarient = async (req, res) => {
+  try {
+
+    const variant = await productVarientModel.find().populate("productId", "product_name");
+
+    if (!variant) {
+      return res.status(404).json({ success: false, message: "Product variant not found" });
+    }
+
+
+    return res.status(200).json({ success: true, data: variant });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 // ✅ Update Product Variant
 export const updateProductVarient = async (req, res) => {
   try {
@@ -414,6 +438,7 @@ export const updateProductVarient = async (req, res) => {
       productvarient_sale_price,
       productvarient_stock_quantity,
       is_active,
+      existingImages, // 👈 comes as JSON string from frontend
     } = req.body;
 
     const variant = await productVarientModel.findById(id);
@@ -421,16 +446,23 @@ export const updateProductVarient = async (req, res) => {
       return res.status(404).json({ success: false, message: "Product variant not found" });
     }
 
-    // Handle new image uploads if provided
-    let uploadedImages = variant.productvarient_images;
-    if (req.files && req.files.length > 0) {
-      // Delete old images from Cloudinary
-      await Promise.all(
-        variant.productvarient_images.map((img) => deleteFromCloudinary(img.public_id))
-      );
+    // ✅ Parse existing images (ids to keep)
+    let keepImages = [];
+    if (existingImages) {
+      try {
+        const keepIds = JSON.parse(existingImages);
+        keepImages = variant.productvarient_images.filter((img) =>
+          keepIds.includes(img._id.toString())
+        );
+      } catch (err) {
+        console.warn("Failed to parse existingImages:", err.message);
+      }
+    }
 
-      // Upload new ones
-      uploadedImages = await Promise.all(
+    // ✅ Handle new image uploads
+    let newUploads = [];
+    if (req.files && req.files.length > 0) {
+      newUploads = await Promise.all(
         req.files.map(async (file) => {
           const cloudResult = await uploadToCloudinary(file.buffer, "product_variants");
           return {
@@ -441,19 +473,44 @@ export const updateProductVarient = async (req, res) => {
       );
     }
 
+    // ✅ Delete removed images from Cloudinary (only those not in keep list)
+    const removedImages = variant.productvarient_images.filter(
+      (img) => !keepImages.some((keep) => keep._id.toString() === img._id.toString())
+    );
+    if (removedImages.length > 0) {
+      await Promise.all(
+        removedImages.map((img) => deleteFromCloudinary(img.public_id))
+      );
+    }
+
+    // ✅ Final images = kept + new
+    const uploadedImages = [...keepImages, ...newUploads];
+
+    // ✅ Update fields
     variant.productvarient_name = productvarient_name || variant.productvarient_name;
-    variant.productvarient_description = productvarient_description || variant.productvarient_description;
-    variant.productvarient_price = productvarient_price || variant.productvarient_price;
-    variant.productvarient_sale_price = productvarient_sale_price || variant.productvarient_sale_price;
-    variant.productvarient_stock_quantity = productvarient_stock_quantity || variant.productvarient_stock_quantity;
-    variant.is_active = is_active !== undefined ? is_active : variant.is_active;
+    variant.productvarient_description =
+      productvarient_description || variant.productvarient_description;
+    variant.productvarient_price =
+      productvarient_price || variant.productvarient_price;
+    variant.productvarient_sale_price =
+      productvarient_sale_price || variant.productvarient_sale_price;
+    variant.productvarient_stock_quantity =
+      productvarient_stock_quantity || variant.productvarient_stock_quantity;
+    variant.is_active =
+      is_active !== undefined ? is_active === "true" || is_active === true : variant.is_active;
     variant.productvarient_images = uploadedImages;
 
     await variant.save();
 
-    return res.status(200).json({ success: true, message: "Product variant updated successfully", data: variant });
+    return res.status(200).json({
+      success: true,
+      message: "Product variant updated successfully",
+      data: variant,
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res
+      .status(500)
+      .json({ success: false, message: error.message });
   }
 };
 

@@ -27,11 +27,6 @@ const orderItemSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
     items: [orderItemSchema],
     status: {
       type: String,
@@ -64,16 +59,16 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
     shippingAddress: {
-      fullName: { type: String, required: true },
+      firstName: { type: String, required: true },
+      lastName: { type: String, required: true },
       phone: { type: String, required: true },
-      addressLine1: { type: String, required: true },
-      addressLine2: { type: String },
+      email: { type: String, required: true },
+      address: { type: String, required: true },
       city: { type: String, required: true },
-      state: { type: String, required: true },
       postalCode: { type: String, required: true },
       country: { type: String, required: true, default: "India" },
     },
-    notes: { type: String },
+  
   },
   { timestamps: true }
 );

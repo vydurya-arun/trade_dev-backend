@@ -22,21 +22,43 @@ export const upload = multer({ storage, fileFilter, limits });
 
 
 
-// ✅ Multiple images upload (min: 4, max: 6)
 export const uploadMultiple = (req, res, next) => {
   const handler = upload.array("file", 6); // allow up to 6 files
 
   handler(req, res, (err) => {
     if (err) return next(err);
 
-    // Validate minimum count
-    if (!req.files || req.files.length < 4) {
-      return next(new Error("You must upload at least 4 images (max 6 allowed)."));
+    let existingCount = 0;
+
+    // existingImages might come as JSON string or array depending on frontend
+    if (req.body.existingImages) {
+      try {
+        const parsed = JSON.parse(req.body.existingImages);
+        existingCount = Array.isArray(parsed) ? parsed.length : 0;
+      } catch {
+        // if it's not JSON (maybe sent as multiple form fields)
+        if (Array.isArray(req.body.existingImages)) {
+          existingCount = req.body.existingImages.length;
+        } else {
+          existingCount = 1; // single string case
+        }
+      }
+    }
+
+    const newCount = req.files?.length || 0;
+    const totalCount = existingCount + newCount;
+
+    if (totalCount < 4) {
+      return next(new Error("You must have at least 4 images (max 6 allowed)."));
+    }
+    if (totalCount > 6) {
+      return next(new Error("Maximum 6 images allowed."));
     }
 
     next();
   });
 };
+
 
 export const uploadReview = (req, res, next) => {
   const handler = upload.array("file", 6); // allow 0–6 files

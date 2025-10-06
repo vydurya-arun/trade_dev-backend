@@ -4,20 +4,31 @@ export const searchAllProduct = async (req, res) => {
   try {
     const { product_name } = req.query;
 
-    let query = {};
-    if (product_name) {
-      query.product_name = { $regex: product_name, $options: "i" }; // case-insensitive partial search
+    // simple validation
+    if (!product_name || product_name.trim() === "") {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        message: "No search term provided",
+      });
     }
 
-    const product = await ProductModel.find(query);
+    const query = {
+      product_name: { $regex: product_name, $options: "i" }, // case-insensitive partial match
+    };
 
-    if (!product || product.length === 0) {
-      return res.status(404).json({ success: false, message: "Product not found" });
-    }
+    const products = await ProductModel.find(query);
 
-    return res.status(200).json({ success: true, data: product });
+    return res.status(200).json({
+      success: true,
+      data: products || [],
+      message: products.length > 0 ? "Products found" : "No products found",
+    });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error while searching products",
+    });
   }
 };
 

@@ -3,8 +3,9 @@ import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 import { registerValudate } from "../validators/authValudation.js";
 import sessionModel from "../models/sessionModel.js";
-import { v4 as uuidv4 } from "uuid";
 import { createSessionAndSetCookies } from "../utils/createSessionAndSetCookies.js";
+import validator from "deep-email-validator";
+
 
 export const register = async (req, res) => {
   try {
@@ -97,6 +98,71 @@ export const adminRegister = async (req, res) => {
       .json({ success: true, message: "sucessfully Register" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+export const createUser = async (req, res) => {
+  try {
+    const { error } = registerValudate.validate(req.body, { abortEarly: false });
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        errors: error.details.map((err) => err.message),
+      });
+    }
+
+    const { username, email, password, role } = req.body;
+
+    if (!username || !email || !password || !role) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing username, email, password or role",
+      });
+    }
+
+    // ✅ Validate email using deep-email-validator
+    const { valid, reason, validators } = await validator.validate(email);
+
+    if (!valid) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid email: ${reason}`,
+        details: validators[reason], // extra debug info
+      });
+    }
+
+    // ✅ Check if user already exists
+    const existUser = await userModel.findOne({ email });
+    if (existUser) {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    // ✅ Hash password
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    const user = new userModel({
+      username,
+      email,
+      role,
+      password: hashPassword,
+    });
+    await user.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Successfully registered",
+    });
+  } catch (error) {
+    console.error("Create user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -281,5 +347,38 @@ export const refresh = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+export const getAllUsers = async(req,res) =>{
+  try {
+    const users = await userModel.find().select("-password -verifyotp -verifyotpExpireAt -isAccountVerified -resetOtp -resetOtpExpireAt -__v");
+    if(!users){
+      return res.status(404).json({success:false, message:"users Not found"});
+
+    }
+
+    return res.status(200).json({success:true, data: users})
+    
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+export const deleteUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await userModel.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "user not found" });
+    }
+
+
+    await user.deleteOne();
+
+    return res.status(200).json({ success: true, message: "user deleted" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

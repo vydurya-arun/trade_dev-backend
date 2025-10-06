@@ -11,6 +11,7 @@ import {
   deleteProductVarientById,
   getAllCategories,
   getAllProducts,
+  getAllProductVarient,
   getCategoryById,
   getProductById,
   getProductByIdwithAllvarients,
@@ -36,6 +37,7 @@ productRouter.delete("/category",authMiddleware, deleteAllCategories);
 // product routes
 productRouter.post("/",authMiddleware,allowEditorOrAdmin, upload.single("file"), createProduct);
 productRouter.get("/",authMiddleware, getAllProducts);
+productRouter.get("/public/", getAllProducts);
 productRouter.get("/all_varient/:id", getProductByIdwithAllvarients);
 productRouter.get("/:id", getProductById);
 productRouter.put("/:id",authMiddleware, upload.single("file"), updateProduct);
@@ -45,6 +47,7 @@ productRouter.delete("/:id",authMiddleware, deleteProductById);
 // product varients
 productRouter.post("/product_varient",authMiddleware, uploadMultiple, createProductVarient);
 productRouter.get("/product_varient/:id", getProductVarientById);
+productRouter.get("/varient/get",authMiddleware, getAllProductVarient);
 productRouter.put("/product_varient/:id",authMiddleware, uploadMultiple, updateProductVarient);
 productRouter.delete("/product_varient/:id",authMiddleware, deleteProductVarientById);
 productRouter.delete("/product_varient",authMiddleware, deleteAllProductVarients);
