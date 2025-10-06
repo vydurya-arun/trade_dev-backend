@@ -199,15 +199,9 @@ export const updateReviewByUser = async (req, res) => {
 export const deleteReviewById = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
 
     const review = await reviewModel.findById(id);
     if (!review) return res.status(404).json({ success: false, message: "Review not found" });
-
-    // Check if user is owner (or admin)
-    if (review.userId.toString() !== userId /* && !req.user.isAdmin */) {
-      return res.status(403).json({ success: false, message: "Unauthorized" });
-    }
 
 
     // Delete the review
