@@ -1,44 +1,56 @@
 import contactModel from "../models/contactModel.js";
+import { contactValudate } from "../validators/contactValudation.js";
 
 // GET all contacts
 export const getContacts = async (req, res) => {
-  try {
-    const contacts = await contactModel.find().sort({ createdAt: -1 });
-    res.status(200).json({success:true, data:contacts});
-  } catch (error) {
-    res.status(500).json({success:false, message: "Failed to fetch contacts", error });
-  }
+    try {
+        const contacts = await contactModel.find().sort({ createdAt: -1 });
+        res.status(200).json({ success: true, data: contacts });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Failed to fetch contacts", error });
+    }
 };
 
 // POST a new contact
 export const createContact = async (req, res) => {
-  try {
-    const { name, email, phone, comment } = req.body;
+    try {
+        const { error } = contactValudate.validate(req.body, {
+            abortEarly: false,
+        });
 
-    if (!name || !email || !phone) {
-      return res.status(400).json({success:false, message: "Name, email and phone are required" });
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                errors: error.details.map((err) => err.message),
+            });
+        }
+
+        const { name, email, phone, comment } = req.body;
+
+        if (!name || !email || !phone) {
+            return res.status(400).json({ success: false, message: "Name, email and phone are required" });
+        }
+
+        const newContact = await contactModel.create({ name, email, phone, comment });
+        res.status(201).json({ success: true, data: newContact });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Failed to create contact", error });
     }
-
-    const newContact = await contactModel.create({ name, email, phone, comment });
-    res.status(201).json({success:true,data:newContact});
-  } catch (error) {
-    res.status(500).json({success:false, message: "Failed to create contact", error });
-  }
 };
 
 // DELETE a contact by ID
 export const deleteContact = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const contact = await contactModel.findById(id);
+    try {
+        const { id } = req.params;
+        const contact = await contactModel.findById(id);
 
-    if (!contact) {
-      return res.status(404).json({ success:false, message: "Contact not found" });
+        if (!contact) {
+            return res.status(404).json({ success: false, message: "Contact not found" });
+        }
+
+        await contact.deleteOne();
+        res.status(200).json({ success: true, message: "Contact deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Failed to delete contact", error });
     }
-
-    await contact.deleteOne();
-    res.status(200).json({success:true, message: "Contact deleted successfully" });
-  } catch (error) {
-    res.status(500).json({success:false, message: "Failed to delete contact", error });
-  }
 };
