@@ -1,4 +1,5 @@
 
+
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
@@ -17,6 +18,12 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+    },
+    brand:{
+      type:String,
+      enum: ["devproducts", "olaproducts", "jappantools"],
+      default: "devproducts",
+      required :true
     },
     averageRating: {
       type: Number,

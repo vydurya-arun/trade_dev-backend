@@ -141,6 +141,7 @@ export const createProduct = async (req, res) => {
       stock_quantity,
       low_stock_threshold,
       categoryId,
+      brand,
       is_active
     } = req.body;
 
@@ -181,6 +182,7 @@ export const createProduct = async (req, res) => {
       low_stock_threshold: low_stock_threshold || 5,
       is_active: is_active !== undefined ? is_active : true,
       categoryId,
+      brand:brand,
       imagePublicId: cloudResult.public_id,
       product_imageUrl: cloudResult.url,
     });
@@ -205,6 +207,45 @@ export const getAllProducts = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// controllers/productController.js
+export const getProductsByBrand = async (req, res) => {
+  try {
+    const { brand } = req.params;
+
+    // Validate brand name (optional, for safety)
+    const allowedBrands = ["devproducts", "olaproducts", "jappantools"];
+    if (!allowedBrands.includes(brand)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid brand name",
+      });
+    }
+
+    // Fetch all products matching the brand
+    const products = await ProductModel.find({ brand })
+      .populate("categoryId", "category_name") // if you want category details
+      .lean();
+
+    if (!products.length) {
+      return res.status(404).json({
+        success: false,
+        message: `No products found for brand: ${brand}`,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 
 export const getProductById = async (req, res) => {
   try {
