@@ -7,11 +7,6 @@ const reviewSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
     rating: {
       type: Number,
       required: true,
@@ -22,12 +17,16 @@ const reviewSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    images: [
-      {
-        url: { type: String, required: true },
-        public_id: { type: String, required: true },
-      },
-    ],
+    name: {
+      type: String,
+      trim: true,
+      required:true
+    },
+    email: {
+      type: String,
+      trim: true,
+      required:true
+    },
   },
   { timestamps: true }
 );

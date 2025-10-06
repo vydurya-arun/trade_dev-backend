@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import ProductModel from "../models/productModel.js";
 import reviewModel from "../models/reviewModel.js";
 import { deleteFromCloudinary, uploadToCloudinary } from "../utils/cloudinary.js";
@@ -26,7 +27,7 @@ export const getAllReviews = async (req, res) => {
     try {
 
         const reviews = await reviewModel.find()
-            .populate("userId", "username email")
+            .populate("productId", "product_name")
             .sort({ createdAt: -1 });
 
         const Reviewcount = reviews.length;    
@@ -40,67 +41,99 @@ export const getAllReviews = async (req, res) => {
 
 export const postReview = async (req, res) => {
   try {
-    const { productId, rating, comment } = req.body;
-    const userId = req?.user?.id;
+    const { productId, rating, comment, email, name } = req.body;
 
-    if (!productId || !rating || !userId) {
+    // Basic required fields check
+    if (!productId || !rating || !email || !name) {
       return res.status(400).json({
         success: false,
-        message: "Missing productId, userId, or rating",
+        message: "Missing productId, rating, email, or name",
       });
     }
 
+    // Validate productId
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid productId",
+      });
+    }
+
+    // Normalize inputs
+    const emailNormalized = String(email).trim().toLowerCase();
+    const nameTrimmed = String(name).trim();
+    const commentTrimmed = comment ? String(comment).trim() : "";
+
+    // Validate rating
     const ratingNum = Number(rating);
-    if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
-      return res.status(400).json({ success: false, message: "Invalid rating value" });
+    if (Number.isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid rating value (1-5)" });
     }
 
-    const alreadyReviewed = await reviewModel.findOne({ productId, userId });
+    // Ensure product exists
+    const product = await ProductModel.findById(productId);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    // Prevent duplicate review by the same email for the same product
+    const alreadyReviewed = await reviewModel.findOne({
+      productId,
+      email: emailNormalized,
+    });
     if (alreadyReviewed) {
-      return res.status(400).json({ success: false, message: "Product already reviewed" });
+      return res.status(400).json({
+        success: false,
+        message: "You (this email) have already reviewed this product",
+      });
     }
 
-    // If images exist, upload to Cloudinary
-    let uploadedImages = [];
-    if (req.files && req.files.length > 0) {
-      uploadedImages = await Promise.all(
-        req.files.map(async (file) => {
-          const cloudResult = await uploadToCloudinary(file.buffer, "review_images");
-          return {
-            url: cloudResult.secure_url || cloudResult.url,
-            public_id: cloudResult.public_id,
-          };
-        })
-      );
-    }
-
-    // create review
+    // Create and save review
     const review = new reviewModel({
       productId,
-      userId,
       rating: ratingNum,
-      comment: comment || "",
-      images: uploadedImages, // empty array if no images
+      comment: commentTrimmed,
+      email: emailNormalized,
+      name: nameTrimmed,
     });
 
     await review.save();
 
-    // update product rating
-    const reviews = await reviewModel.find({ productId });
-    const numReviews = reviews.length;
-    const averageRating =
-      numReviews > 0
-        ? reviews.reduce((acc, r) => acc + r.rating, 0) / numReviews
-        : 0;
+    // Recompute stats (using aggregation for accuracy & performance)
+    const stats = await reviewModel.aggregate([
+      { $match: { productId: new mongoose.Types.ObjectId(productId) } },
+      {
+        $group: {
+          _id: "$productId",
+          numReviews: { $sum: 1 },
+          avgRating: { $avg: "$rating" },
+        },
+      },
+    ]);
 
-    await ProductModel.findByIdAndUpdate(productId, { averageRating, numReviews });
+    let numReviews = 0;
+    let averageRating = 0;
+    if (stats.length > 0) {
+      numReviews = stats[0].numReviews;
+      averageRating = Number(stats[0].avgRating.toFixed(1)); // store as number
+    }
 
-    res.status(201).json({ success: true, review });
+    // Update product's rating fields
+    await ProductModel.findByIdAndUpdate(
+      productId,
+      { averageRating, numReviews },
+      { new: true }
+    );
+
+    return res.status(201).json({ success: true, review });
   } catch (error) {
     console.error("Post Review Error:", error);
-    res.status(500).json({ success: false, message: "Failed to post review" });
+    return res.status(500).json({ success: false, message: "Failed to post review" });
   }
 };
+
 
 export const deleteAllReviews = async (req, res) => {
   try {
@@ -176,12 +209,6 @@ export const deleteReviewById = async (req, res) => {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
-    // Delete images from Cloudinary
-    if (review.images && review.images.length > 0) {
-      for (const img of review.images) {
-        await deleteFromCloudinary(img.public_id);
-      }
-    }
 
     // Delete the review
     await reviewModel.findByIdAndDelete(id);
