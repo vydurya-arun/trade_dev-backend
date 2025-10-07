@@ -55,7 +55,7 @@ export const autoSuggestProduct = async (req, res) => {
 
 export const filterProducts = async (req, res) => {
   try {
-    const { search, inStock, sortBy, categoryId } = req.query;
+    const { search, inStock, sortBy, categoryId, product_features } = req.query;
 
     let query = {};
 
@@ -64,14 +64,33 @@ export const filterProducts = async (req, res) => {
       query.product_name = { $regex: search, $options: "i" };
     }
 
-    //  In-stock filter
+    // In-stock filter
     if (inStock === "true") {
       query.stock_quantity = { $gt: 0 };
     }
 
-    //  Category filter (by ID)
+    // Category filter (by ID)
     if (categoryId) {
       query.categoryId = categoryId; // must be ObjectId
+    }
+
+    // Product features filter
+    if (product_features) {
+      let featuresArray = product_features;
+
+      // If sent as a string (comma separated or JSON), parse it
+      if (typeof featuresArray === "string") {
+        try {
+          // Try parsing as JSON array first
+          featuresArray = JSON.parse(featuresArray);
+        } catch (e) {
+          // fallback: comma-separated string
+          featuresArray = featuresArray.split(",").map(f => f.trim());
+        }
+      }
+
+      // Filter products where product_features contains any of the selected features
+      query.product_features = { $in: featuresArray };
     }
 
     // Sorting
