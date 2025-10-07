@@ -219,6 +219,48 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
+export const getAllProductsLatest = async (req, res) => {
+  try {
+    const products = await ProductModel.find({
+      product_features: { $in: ["latest"] } // ✅ filters only products containing "latest"
+    })
+      .populate("categoryId", "category_name")
+      .sort({ createdAt: -1 }) // ✅ newest first (assuming timestamps enabled)
+      .limit(4); // ✅ only 4 products
+    
+
+    if (!products.length) {
+      return res.status(404).json({ success: false, message: "No latest products found" });
+    }
+    const count = products.length;
+
+    return res.status(200).json({ success: true, data: products, count:count });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getAllProductsFeatured = async (req, res) => {
+  try {
+    const products = await ProductModel.find({
+      product_features: { $in: ["featured"] } // ✅ filters only products containing "latest"
+    })
+      .populate("categoryId", "category_name")
+      .sort({ createdAt: -1 }) // ✅ newest first (assuming timestamps enabled)
+      .limit(4); // ✅ only 4 products
+    
+
+    if (!products.length) {
+      return res.status(404).json({ success: false, message: "No latest products found" });
+    }
+    const count = products.length;
+
+    return res.status(200).json({ success: true, data: products, count:count });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // controllers/productController.js
 export const getProductsByBrand = async (req, res) => {
   try {

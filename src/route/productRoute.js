@@ -11,6 +11,8 @@ import {
   deleteProductVarientById,
   getAllCategories,
   getAllProducts,
+  getAllProductsFeatured,
+  getAllProductsLatest,
   getAllProductVarient,
   getCategoryById,
   getProductById,
@@ -39,6 +41,8 @@ productRouter.delete("/category",authMiddleware, deleteAllCategories);
 productRouter.post("/",authMiddleware,allowEditorOrAdmin, upload.single("file"), createProduct);
 productRouter.get("/",authMiddleware, getAllProducts);
 productRouter.get("/public/", getAllProducts);
+productRouter.get("/public/latest", getAllProductsLatest);
+productRouter.get("/public/featured", getAllProductsFeatured);
 productRouter.get("/public/:brand", getProductsByBrand);
 productRouter.get("/all_varient/:id", getProductByIdwithAllvarients);
 productRouter.get("/:id", getProductById);
