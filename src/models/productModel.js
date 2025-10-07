@@ -25,6 +25,11 @@ const productSchema = new mongoose.Schema(
       default: "devproducts",
       required :true
     },
+    product_features: {
+      type: [String], 
+      default: [], 
+      required: true,
+    },
     averageRating: {
       type: Number,
       default: 0,

@@ -141,6 +141,7 @@ export const createProduct = async (req, res) => {
       stock_quantity,
       low_stock_threshold,
       categoryId,
+      product_features,
       brand,
       is_active
     } = req.body;
@@ -158,6 +159,15 @@ export const createProduct = async (req, res) => {
         message:
           "Missing required fields: product_name, product_price, stock_quantity, categoryId, or image file",
       });
+    }
+    let features = product_features;
+
+    if (typeof features === "string") {
+      try {
+        features = JSON.parse(features); // converts string back to array
+      } catch (e) {
+        features = []; // fallback
+      }
     }
 
     // Check if category exists
@@ -182,6 +192,7 @@ export const createProduct = async (req, res) => {
       low_stock_threshold: low_stock_threshold || 5,
       is_active: is_active !== undefined ? is_active : true,
       categoryId,
+      product_features:features,
       brand:brand,
       imagePublicId: cloudResult.public_id,
       product_imageUrl: cloudResult.url,
@@ -294,16 +305,31 @@ export const getProductByIdwithAllvarients = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
 
     const product = await ProductModel.findById(id);
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
+    // Handle product_features safely
+    if (updates.product_features) {
+      let features = updates.product_features;
+
+      if (typeof features === "string") {
+        try {
+          features = JSON.parse(features); // converts string back to array
+        } catch (e) {
+          features = []; // fallback
+        }
+      }
+
+      updates.product_features = features;
+    }
+
     // Handle image update if new file uploaded
     if (req.file) {
-      // Delete old image
+      // Delete old image from Cloudinary
       if (product.imagePublicId) {
         await deleteFromCloudinary(product.imagePublicId);
       }
@@ -312,6 +338,7 @@ export const updateProduct = async (req, res) => {
       updates.product_imageUrl = cloudResult.url;
     }
 
+    // Update product with new values
     Object.assign(product, updates);
     await product.save();
 
