@@ -10,7 +10,9 @@ import {
   deleteProductById,
   deleteProductVarientById,
   getAllCategories,
+  getAllCategoriesPublic,
   getAllProducts,
+  getAllProductsCatCount,
   getAllProductsFeatured,
   getAllProductsLatest,
   getAllProductVarient,
@@ -32,6 +34,7 @@ const productRouter = express.Router();
 // category routes
 productRouter.post("/category",authMiddleware, upload.single("file"), createCategory);
 productRouter.get("/category",authMiddleware,allowEditorOrAdmin, getAllCategories);
+productRouter.get("/category/public", getAllCategoriesPublic);
 productRouter.get("/category/:id", getCategoryById);
 productRouter.put("/category/:id",authMiddleware, upload.single("file"), updateCategory);
 productRouter.delete("/category/:id",authMiddleware, deleteCategoryById);
@@ -41,6 +44,7 @@ productRouter.delete("/category",authMiddleware, deleteAllCategories);
 productRouter.post("/",authMiddleware,allowEditorOrAdmin, upload.single("file"), createProduct);
 productRouter.get("/",authMiddleware, getAllProducts);
 productRouter.get("/public/", getAllProducts);
+productRouter.get("/public/categoryCount", getAllProductsCatCount);
 productRouter.get("/public/latest", getAllProductsLatest);
 productRouter.get("/public/featured", getAllProductsFeatured);
 productRouter.get("/public/:brand", getProductsByBrand);

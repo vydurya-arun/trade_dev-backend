@@ -61,6 +61,14 @@ export const getAllCategories = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+export const getAllCategoriesPublic = async (req, res) => {
+  try {
+    const categories = await CategoryModel.find();
+    return res.status(200).json({ success: true, data: categories });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 export const updateCategory = async (req, res) => {
   try {
@@ -214,6 +222,41 @@ export const getAllProducts = async (req, res) => {
   try {
     const products = await ProductModel.find().populate("categoryId", "category_name");
     return res.status(200).json({ success: true, data: products });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getAllProductsCatCount = async (req, res) => {
+  try {
+    const result = await ProductModel.aggregate([
+      {
+        $lookup: {
+          from: "categories", // collection name in MongoDB
+          localField: "categoryId",
+          foreignField: "_id",
+          as: "category"
+        }
+      },
+      { $unwind: "$category" },
+      {
+        $group: {
+          _id: "$category._id",
+          category_name: { $first: "$category.category_name" },
+          productCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          categoryId: "$_id",
+          category_name: 1,
+          productCount: 1
+        }
+      }
+    ]);
+
+    return res.status(200).json({ success: true, data: result });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

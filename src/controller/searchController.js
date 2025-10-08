@@ -1,3 +1,4 @@
+import CategoryModel from "../models/categoryModel.js";
 import ProductModel from "../models/productModel.js";
 
 export const searchAllProduct = async (req, res) => {
@@ -55,64 +56,77 @@ export const autoSuggestProduct = async (req, res) => {
 
 export const filterProducts = async (req, res) => {
   try {
-    const { search, inStock, sortBy, categoryId, product_features } = req.query;
-
+    const { search, inStock, sortBy, category_name, product_features,brand } = req.query;
     let query = {};
 
-    // Search by product name (partial match, case-insensitive)
+    // 🔍 Search by product name (partial, case-insensitive)
     if (search) {
       query.product_name = { $regex: search, $options: "i" };
     }
 
-    // In-stock filter
+    // 📦 In-stock filter
     if (inStock === "true") {
       query.stock_quantity = { $gt: 0 };
     }
 
-    // Category filter (by ID)
-    if (categoryId) {
-      query.categoryId = categoryId; // must be ObjectId
+    // 🏷️ Category filter (by name instead of ID)
+    if (category_name) {
+      const category = await CategoryModel.findOne({
+        category_name: { $regex: `^${category_name}$`, $options: "i" }, // case-insensitive exact match
+      });
+      if (category) {
+        query.categoryId = category._id;
+      } else {
+        // No category found with that name — return empty result
+        return res.status(404).json({
+          success: false,
+          message: `No category found with name "${category_name}"`,
+        });
+      }
     }
 
-    // Product features filter
+    // 🌟 Product features filter
     if (product_features) {
       let featuresArray = product_features;
 
-      // If sent as a string (comma separated or JSON), parse it
       if (typeof featuresArray === "string") {
         try {
-          // Try parsing as JSON array first
           featuresArray = JSON.parse(featuresArray);
         } catch (e) {
-          // fallback: comma-separated string
-          featuresArray = featuresArray.split(",").map(f => f.trim());
+          featuresArray = featuresArray.split(",").map((f) => f.trim());
         }
       }
 
-      // Filter products where product_features contains any of the selected features
       query.product_features = { $in: featuresArray };
     }
-
-    // Sorting
-    let sort = {};
-    if (sortBy === "lowToHigh") {
-      sort = { sale_price: 1 }; // ascending
-    } else if (sortBy === "highToLow") {
-      sort = { sale_price: -1 }; // descending
-    } else {
-      sort = { createdAt: -1 }; // newest first (default)
+    if(brand){
+      query.brand = { $in: brand }
     }
 
+    // 🔽 Sorting
+    let sort = {};
+    if (sortBy === "lowToHigh") {
+      sort = { sale_price: 1 };
+    } else if (sortBy === "highToLow") {
+      sort = { sale_price: -1 };
+    } else {
+      sort = { createdAt: -1 }; // newest first
+    }
+
+    // 🧾 Fetch filtered products
     const products = await ProductModel.find(query)
-      .populate("categoryId", "category_name") // show category name
+      .populate("categoryId", "category_name")
       .sort(sort);
 
     if (!products || products.length === 0) {
-      return res.status(404).json({ success: false, message: "No products found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "No products found" });
     }
 
     return res.status(200).json({ success: true, data: products });
   } catch (error) {
+    console.error("Filter error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };

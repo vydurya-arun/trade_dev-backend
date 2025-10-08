@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
-import { registerValudate } from "../validators/authValudation.js";
+import { registerValudate, registerValudateAdmin } from "../validators/authValudation.js";
 import sessionModel from "../models/sessionModel.js";
 import { createSessionAndSetCookies } from "../utils/createSessionAndSetCookies.js";
 import validator from "deep-email-validator";
@@ -56,7 +56,7 @@ export const register = async (req, res) => {
 
 export const adminRegister = async (req, res) => {
   try {
-    const { error } = registerValudate.validate(req.body, {
+    const { error } = registerValudateAdmin.validate(req.body, {
       abortEarly: false,
     });
 
