@@ -12,6 +12,7 @@ import chargeRoutes from './src/route/chargesRoutes.js';
 import wishlistRoutes from './src/route/wishlistRoutes.js';
 import reviewRoutes from './src/route/reviewRoute.js';
 import contactRoutes from './src/route/contactRoutes.js';
+import otpRoutes from './src/route/otpRoutes.js';
 import bodyParser from 'body-parser';
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/charges', chargeRoutes);
 app.use('/api/whishlist', wishlistRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/otp', otpRoutes);
 
 app.get('/', (req,res) => res.send('welcome to Backend'));
 

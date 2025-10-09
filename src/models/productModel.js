@@ -21,7 +21,7 @@ const productSchema = new mongoose.Schema(
     },
     brand:{
       type:String,
-      enum: ["devproducts", "olaproducts", "jappantools"],
+      enum: ["devproducts", "olaproducts", "geonproducts"],
       default: "devproducts",
       required :true
     },

@@ -56,28 +56,37 @@ export const autoSuggestProduct = async (req, res) => {
 
 export const filterProducts = async (req, res) => {
   try {
-    const { search, inStock, sortBy, category_name, product_features,brand } = req.query;
+    const {
+      search,
+      inStock,
+      sortBy,
+      category_name,
+      product_features,
+      brand,
+      page = 1, 
+      limit = 6  
+    } = req.query;
+
     let query = {};
 
-    // 🔍 Search by product name (partial, case-insensitive)
+    // Search by product name (partial, case-insensitive)
     if (search) {
       query.product_name = { $regex: search, $options: "i" };
     }
 
-    // 📦 In-stock filter
+    //  In-stock filter
     if (inStock === "true") {
       query.stock_quantity = { $gt: 0 };
     }
 
-    // 🏷️ Category filter (by name instead of ID)
+    //  Category filter (by name instead of ID)
     if (category_name) {
       const category = await CategoryModel.findOne({
-        category_name: { $regex: `^${category_name}$`, $options: "i" }, // case-insensitive exact match
+        category_name: { $regex: `^${category_name}$`, $options: "i" },
       });
       if (category) {
         query.categoryId = category._id;
       } else {
-        // No category found with that name — return empty result
         return res.status(404).json({
           success: false,
           message: `No category found with name "${category_name}"`,
@@ -85,7 +94,7 @@ export const filterProducts = async (req, res) => {
       }
     }
 
-    // 🌟 Product features filter
+    //  Product features filter
     if (product_features) {
       let featuresArray = product_features;
 
@@ -99,11 +108,17 @@ export const filterProducts = async (req, res) => {
 
       query.product_features = { $in: featuresArray };
     }
-    if(brand){
-      query.brand = { $in: brand }
+
+    //  Brand filter
+    if (brand) {
+      let brandArray = brand;
+      if (typeof brandArray === "string") {
+        brandArray = brandArray.split(",").map((b) => b.trim());
+      }
+      query.brand = { $in: brandArray };
     }
 
-    // 🔽 Sorting
+    //  Sorting
     let sort = {};
     if (sortBy === "lowToHigh") {
       sort = { sale_price: 1 };
@@ -113,10 +128,18 @@ export const filterProducts = async (req, res) => {
       sort = { createdAt: -1 }; // newest first
     }
 
-    // 🧾 Fetch filtered products
+    //  Pagination setup
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    //  Total count for frontend pagination controls
+    const totalProducts = await ProductModel.countDocuments(query);
+
+    //  Fetch paginated products
     const products = await ProductModel.find(query)
       .populate("categoryId", "category_name")
-      .sort(sort);
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit));
 
     if (!products || products.length === 0) {
       return res
@@ -124,7 +147,14 @@ export const filterProducts = async (req, res) => {
         .json({ success: false, message: "No products found" });
     }
 
-    return res.status(200).json({ success: true, data: products });
+    //  Return paginated response
+    return res.status(200).json({
+      success: true,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(totalProducts / limit),
+      totalProducts,
+      data: products,
+    });
   } catch (error) {
     console.error("Filter error:", error);
     return res.status(500).json({ success: false, message: error.message });

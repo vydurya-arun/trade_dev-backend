@@ -310,7 +310,7 @@ export const getProductsByBrand = async (req, res) => {
     const { brand } = req.params;
 
     // Validate brand name (optional, for safety)
-    const allowedBrands = ["devproducts", "olaproducts", "jappantools"];
+    const allowedBrands = ["devproducts", "olaproducts", "geonproducts"];
     if (!allowedBrands.includes(brand)) {
       return res.status(400).json({
         success: false,
