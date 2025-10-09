@@ -82,3 +82,45 @@ export const verifyOtpAndSetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const getotpTime = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const otpData = await Otp.findOne({ email });
+
+    if (!otpData) {
+      return res.status(404).json({ success: false, message: "OTP not found for this email" });
+    }
+
+    // ✅ Format expiry time
+    const formattedExpiry = otpData.expiresAt.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour12: true,
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+
+    // ✅ Calculate remaining time in seconds
+    const remainingMs = new Date(otpData.expiresAt) - new Date();
+    const remainingSeconds = Math.max(0, Math.floor(remainingMs / 1000));
+
+    return res.status(200).json({
+      success: true,
+      message: "OTP expiry time retrieved successfully",
+      expireTime: formattedExpiry,
+      remainingSeconds,
+    });
+  } catch (error) {
+    console.error("Error fetching OTP time:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
