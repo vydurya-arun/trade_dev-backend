@@ -185,7 +185,7 @@ export const adminLogin = async (req, res) => {
     }
 
     // Check role
-    if (user.role !== "admin") {
+    if (user.role !== "admin" && user.role !== "superAdmin") {
       return res
         .status(403)
         .json({ success: false, message: "Access denied: Admins only" });
@@ -372,6 +372,11 @@ export const deleteUserById = async (req, res) => {
     const user = await userModel.findById(id);
     if (!user) {
       return res.status(404).json({ success: false, message: "user not found" });
+    }
+
+    const logUser = req.user?.email;
+    if(logUser === user.email){
+      return res.status(404).json({success:false,message:"You cannot delete your own account"})
     }
 
 
