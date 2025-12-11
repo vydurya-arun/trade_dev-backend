@@ -22,6 +22,21 @@ const productVarientSchema = new mongoose.Schema(
       required: true,
       min: 0,
     },
+    productvarient_color:{
+      type:String,
+      enum:['red','blue','orange','white','black','green']
+    },
+    productvarient_size:{
+      type:String,
+      enum:["XS", "S", "M", "L", "XL"]
+    },
+    tags:{
+      type:[String],
+      enum: {
+        values: ["buckets", "brushes", "cleaning"],
+        message: "Invalid tag value",
+      },
+    },
     productvarient_images: [
       {
         url: { type: String, required: true },

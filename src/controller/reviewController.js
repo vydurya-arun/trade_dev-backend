@@ -12,7 +12,6 @@ export const getReviewsByProduct = async (req, res) => {
             return res.status(404).json({ success: false, message: "notfound productId" })
         }
         const reviews = await reviewModel.find({ productId: productId })
-            .populate("userId", "username email")
             .sort({ createdAt: -1 });
 
         res.json({ success: true, data: reviews });
