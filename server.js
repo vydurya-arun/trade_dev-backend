@@ -13,6 +13,7 @@ import wishlistRoutes from './src/route/wishlistRoutes.js';
 import reviewRoutes from './src/route/reviewRoute.js';
 import contactRoutes from './src/route/contactRoutes.js';
 import otpRoutes from './src/route/otpRoutes.js';
+import MetaRoutes from './src/route/metaTagsRoute.js';
 import bodyParser from 'body-parser';
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/whishlist', wishlistRoutes);
 app.use('/api/review', reviewRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/otp', otpRoutes);
+app.use('/api/metatags', MetaRoutes);
 
 app.get('/', (req,res) => res.send('welcome to Backend'));
 
