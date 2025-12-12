@@ -485,6 +485,9 @@ export const createProductVarient = async (req, res) => {
       productvarient_price,
       productvarient_sale_price,
       productvarient_stock_quantity,
+      productvarient_color,
+      productvarient_size,
+      tags,
       is_active,
     } = req.body;
 
@@ -531,6 +534,9 @@ export const createProductVarient = async (req, res) => {
       productvarient_price,
       productvarient_sale_price: productvarient_sale_price || null,
       productvarient_stock_quantity,
+      productvarient_color:productvarient_color || "",
+      productvarient_size: productvarient_size || "",
+      tags,
       is_active: is_active !== undefined ? is_active : true,
       productvarient_images: uploadedImages,
     });
@@ -590,6 +596,9 @@ export const updateProductVarient = async (req, res) => {
       productvarient_price,
       productvarient_sale_price,
       productvarient_stock_quantity,
+      productvarient_color,
+      productvarient_size,
+      tags,
       is_active,
       existingImages, // 👈 comes as JSON string from frontend
     } = req.body;
@@ -652,6 +661,9 @@ export const updateProductVarient = async (req, res) => {
     variant.is_active =
       is_active !== undefined ? is_active === "true" || is_active === true : variant.is_active;
     variant.productvarient_images = uploadedImages;
+    variant.productvarient_color = productvarient_color || variant.productvarient_color;
+    variant.productvarient_size = productvarient_size || variant.productvarient_size;
+    variant.tags = tags || variant.tags;
 
     await variant.save();
 
@@ -710,3 +722,42 @@ export const deleteAllProductVarients = async (req, res) => {
   }
 };
 
+
+export const getRelativeProductVarient = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Find the selected variant
+    const variant = await productVarientModel.findById(id)
+
+    if (!variant) {
+      return res.status(404).json({ success: false, message: "Product variant not found" });
+    }
+
+    const tags = variant.tags || [];
+
+    if (!tags && tags.length<=0) {
+      return res.status(404).json({
+        success: false,
+        message: "No tags found, so no related variants."
+      });
+    }
+
+    // 2. Find related variants that share ANY of the tags
+    const relatedVariants = await productVarientModel.find({
+      _id: { $ne: variant._id },     // exclude current variant
+      tags: { $in: tags },           // match shared tags
+    })
+    .limit(4)
+    .populate("productId", "product_name product_imageUrl averageRating")
+    .select("-productvarient_images -productvarient_description -productvarient_stock_quantity")
+
+    return res.status(200).json({
+      success: true,
+      related: relatedVariants
+    });
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

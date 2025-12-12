@@ -21,6 +21,7 @@ import {
   getProductByIdwithAllvarients,
   getProductsByBrand,
   getProductVarientById,
+  getRelativeProductVarient,
   updateCategory,
   updateProduct,
   updateProductVarient,
@@ -61,6 +62,7 @@ productRouter.get("/varient/get",authMiddleware, getAllProductVarient);
 productRouter.put("/product_varient/:id",authMiddleware, uploadMultiple, updateProductVarient);
 productRouter.delete("/product_varient/:id",authMiddleware, deleteProductVarientById);
 productRouter.delete("/product_varient",authMiddleware, deleteAllProductVarients);
+productRouter.get("/relative_product_varient/:id", getRelativeProductVarient);
 
 
 export default productRouter;

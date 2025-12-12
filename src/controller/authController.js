@@ -123,15 +123,15 @@ export const createUser = async (req, res) => {
     }
 
     // ✅ Validate email using deep-email-validator
-    const { valid, reason, validators } = await validator.validate(email);
+    // const { valid, reason, validators } = await validator.validate(email);
 
-    if (!valid) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid email: ${reason}`,
-        details: validators[reason], // extra debug info
-      });
-    }
+    // if (!valid) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: `Invalid email: ${reason}`,
+    //     details: validators[reason], // extra debug info
+    //   });
+    // }
 
     // ✅ Check if user already exists
     const existUser = await userModel.findOne({ email });
